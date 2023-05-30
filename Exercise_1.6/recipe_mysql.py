@@ -69,17 +69,25 @@ def search_recipe(conn, cursor):
   all_ings = []
   for ing_tuple in results:
     for ing in ing_tuple:
-      if ing not in all_ings:
-        all_ings.append(ing)
-
-  print(all_ings)
-
-  ing_searched = input('Which ingredient # would you like to search recipes for?: ')
+      ing_split = ing.split(', ')
+      all_ings.extend(ing_split)
+    
+  for e, ing in enumerate(all_ings):
+    print(str(e) + '. ' + ing)
   
-  cursor.execute("SELECT * FROM Recipes WHERE ingredients LIKE %" + ing_searched + "%")
+  # all_ings is now a list of ingredient strings. Now, the user will input an integer
+  # to search the DB for the ingredient at that index in all_ings[]
+  
+  print('======================================================')
+  ing_searched = all_ings[int(input('Which ingredient # would you like to search recipes for?: '))]
+  
+  cursor.execute("SELECT * FROM Recipes WHERE ingredients LIKE '%" + ing_searched + "%'")
   results = cursor.fetchall()
 
+  print('======================================================')
+  print('SEARCH RESULTS FOR RECIPES WITH: "' + ing_searched.upper() + '"')
   for row in results:
+    print('------------------------------------------------------')
     print('ID: ', row[0])
     print('Name: ', row[1])
     print('Ingredients: ', row[2])
@@ -101,44 +109,36 @@ def update_recipe(conn, cursor):
   isNameChanging = input('Change NAME of Recipe ' + id_for_update + '? (y/n): ')
   if isNameChanging.lower() == 'y':
     new_name = input("Enter the new name: ")
-    sql = 'UPDATE Recipes SET name = "' + new_name + '" WHERE id =' + id_for_update
-    cursor.execute(sql)
+    cursor.execute("UPDATE Recipes SET name = %s WHERE id = %s", (new_name, id_for_update))
     conn.commit()
 
   # Ask the user if changing the recipe cook time
   isCookTimeChanging = input('Change COOK TIME of Recipe ' + id_for_update + '? (y/n): ')
   if isCookTimeChanging.lower() == 'y':
-    new_cooking_time = input("Enter the new cooking time in minutes: ")
-    sql = 'UPDATE Recipes SET cooking_time = "' + new_cooking_time + '" WHERE id =' + id_for_update
-    cursor.execute(sql)
+    new_cooking_time = int(input("Enter the new cooking time in minutes: "))
+    cursor.execute("UPDATE Recipes SET cooking_time = %s WHERE id = %s", (new_cooking_time, id_for_update))
     conn.commit()
 
   # Ask the user if changing the recipe ingredients
   areIngredientsChanging = input('Change INGREDIENTS of Recipe ' + id_for_update + '? (y/n): ')
   if areIngredientsChanging.lower() == 'y':
     new_ings = input('List all ingredients (separated by ", "): ')
-    sql = 'UPDATE Recipes SET ingredients = "' + new_ings + '" WHERE id = ' + id_for_update
-    cursor.execute(sql)
+    cursor.execute("UPDATE Recipes SET ingredients = %s  WHERE id = %s", (new_ings, id_for_update))
     conn.commit()
 
   # If the user changed the cook time OR the ingredients, calc and update the difficulty
   if isCookTimeChanging == 'y' or areIngredientsChanging == 'y':
-    sql = 'SELECT cooking_time, ingredients FROM Recipes WHERE id =' + id_for_update
-    cursor.execute(sql)
-
+    cursor.execute('SELECT cooking_time, ingredients FROM Recipes WHERE id =' + id_for_update)
     results = cursor.fetchall()
-    cooking_time = results[0]
-    ings = [for ing in results[1]]
-    ings = ings.split(', ')
-    # new_difficulty = calc_difficulty(cooking_time, ings)
-    print('results: ', results)
-    print('ct: ', cooking_time)
-    print('ings: ', ings)
 
-    # sql = 'UPDATE Recipes SET difficulty = ' + new_difficulty + 'WHERE id =' + id_for_update
-    # cursor.execute(sql)
-    # conn.commit()
+    # results is currently a list with a tuple i.e. results = [( int(ct), list(ings) )]
+    # which explains the nested indexes below
+    ct = results[0][0]
+    ings = results[0][1]
+    new_difficulty = calc_difficulty(ct, ings)
 
+    cursor.execute("UPDATE Recipes SET difficulty = %s  WHERE id = %s", (new_difficulty, id_for_update))
+    conn.commit()
 
 def delete_recipe(conn, cursor):
   print('======================================================')
