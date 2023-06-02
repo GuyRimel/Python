@@ -74,46 +74,69 @@ def update_recipe():
   print('UPDATE RECIPE')
   print_all_recipes()
 
-  recipe_id = int(input('>>> Enter the ID of the recipe you\'d like to update: '))
-  recipe_obj = session.query(Recipe).filter(Recipe.id == recipe_id).one()
+  recipe_id = None
+  valid_ids = []
+  
+  for id_tuple in session.query(Recipe.id).all():
+    valid_ids.append(id_tuple[0])
+
+  print(valid_ids)
+
+  while not recipe_id in valid_ids:
+    recipe_id = input('>>> Enter the ID of the recipe you\'d like to update (or go "back"): ')
+    if recipe_id == 'back':
+      return show_main_menu()
+
+    try:
+      recipe_id = int(recipe_id)
+      if not recipe_id in valid_ids:
+        print('### WRONG! There is no recipe with that ID!')
+
+    except:
+      print('### WRONG! Recipe ID must be an integer!')
+
 
   print('======================================================================')
   print('SELECTED RECIPE:')
-  print_recipe(recipe_obj)
-
-  name_is_changing = input('>>> Want to update the recipe NAME? (y/n): ').lower()
+  print_recipe(session.query(Recipe).filter(Recipe.id == recipe_id).one())
 
   # update the recipe name
+  name_is_changing = input('>>> Want to update the recipe NAME? (y/n): ').lower()
+
   if name_is_changing == 'y':
     new_name = input('>>> Enter the new NAME: ')
-    recipe_obj.update({Recipe.name: new_name})
-
-  ct_is_changing = input('>>> Want to update the recipe COOK TIME? (y/n): ').lower()
-  new_ct = None
+    session.query(Recipe).filter(Recipe.id == recipe_id).update({Recipe.name: new_name})
 
   # update the recipe cooking_time
+  ct_is_changing = input('>>> Want to update the recipe COOK TIME? (y/n): ').lower()
+
   if ct_is_changing == 'y':
+    new_ct = None
     while not new_ct:
       try:
         new_ct = int(input('>>> Enter the new recipe COOK TIME (in minutes): '))
+        break
+
       except:
         print("### WRONG! Cooking time must be an integer.")
     
-    recipe_obj.update({Recipe.cooking_time: new_ct})
-
-  ings_are_changing = input('>>> Want to update the recipe INGREDIENTS? (y/n): ').lower()
-  new_ings = None
+    session.query(Recipe).filter(Recipe.id == recipe_id).update({Recipe.cooking_time: new_ct})
 
   # update the recipe ingredients
+  ings_are_changing = input('>>> Want to update the recipe INGREDIENTS? (y/n): ').lower()
+
   if ings_are_changing == 'y':
     new_ings = input('>>> Enter the new INGREDIENTS (separated by ", "): ')
-    recipe_obj.update({Recipe.ingredients: new_ings})
+    session.query(Recipe).filter(Recipe.id == recipe_id).update({Recipe.ingredients: new_ings})
 
   # if the cooking_time OR ingredients update, update the difficulty
   if ct_is_changing == 'y' or ings_are_changing == 'y':
-    ings_list = new_ings.split(', ')
-    new_difficulty = calc_difficulty(new_ct, ings_list)
-    recipe_obj.update({Recipe.difficulty: new_difficulty})
+    recipe = session.query(Recipe).filter(Recipe.id == recipe_id).one()
+    ct = recipe.cooking_time
+    ings_list = recipe.ingredients.split(', ')
+    new_difficulty = calc_difficulty(ct, ings_list)
+
+    session.query(Recipe).filter(Recipe.id == recipe_id).update({Recipe.difficulty: new_difficulty})
 
   session.commit()
   print('### Recipe Updated!')
@@ -131,11 +154,12 @@ def delete_recipe():
 
     recipe_id = input('>>> Enter the ID of the recipe you\'d like to delete (or go "back"): ')
     if recipe_id == 'back':
-      break
+      return show_main_menu()
 
     else:
       try:
         recipe_obj = session.query(Recipe).filter(Recipe.id == recipe_id).one()
+        break
 
       except:
         print('### WRONG! There is no recipe with that id!')
@@ -161,22 +185,20 @@ def search_recipes_by_ingredients():
 
 
 def show_main_menu():
-  def print_menu():
-    print('======================================================================')
-    print('BEST RECIPES EVER! (CLI): MAIN MENU')
-    print('======================================================================')
-    print('1. Create a new recipe ("new")')
-    print('2. View all recipes ("all")')
-    print('3. Search for a recipe by ingredients ("search")')
-    print('4. Update a recipe ("update")')
-    print('5. Delete a recipe ("delete")')
-    print('6. Quit ("quit")')
-    print('----------------------------------------------------------------------')
+  print('======================================================================')
+  print('BEST RECIPES EVER! (CLI): MAIN MENU')
+  print('======================================================================')
+  print('1. Create a new recipe ("new")')
+  print('2. View all recipes ("all")')
+  print('3. Search for a recipe by ingredients ("search")')
+  print('4. Update a recipe ("update")')
+  print('5. Delete a recipe ("delete")')
+  print('6. Quit ("quit")')
+  print('----------------------------------------------------------------------')
   
   user_selection = None
 
   while user_selection is not '6' or user_selection is not 'quit':
-    print_menu()
     user_selection = input('>>> Enter a number or command: ').lower()
 
     if user_selection == '1' or user_selection == 'new':
