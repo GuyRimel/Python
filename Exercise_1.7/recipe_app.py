@@ -273,7 +273,7 @@ def search_recipes_by_ingredients():
   ings_searched = ''
   while not ings_searched:
     ings_searched = input('Input one or more ingredient numbers separated by a space to search (or go "back"): ')
-    
+
     if ing_searched == "back":
       return None
 
@@ -361,8 +361,6 @@ def print_all_recipes():
     print("Ingredients:\t", recipe.ingredients)
     print("Cooking Time:\t", recipe.cooking_time)
     print("Difficulty:\t", recipe.difficulty)
-    if e + 1 == len(recipes_list):
-      print('----------------------------------------------------------------------')
 
 
 def print_recipe(recipe):
