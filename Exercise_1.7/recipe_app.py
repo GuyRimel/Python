@@ -294,9 +294,9 @@ def search_recipes_by_ingredients():
   filtered_recipes = session.query(Recipe).all()
 
   # 08. for each ingredient searched, loop through each recipe. If the recipe does NOT include one of the searched ingredients, that recipe is removed.
-  for ing_searched in ings_searched_list:
+  for ing in ings_searched_list:
     for recipe in filtered_recipes:
-      if ing_searched not in recipe.ingredients:
+      if ing not in recipe.ingredients:
         filtered_recipes.remove(recipe)
 
   # 09. What you end up with is only recipes that include ALL of the searched ingredients e.g. "Lemonade"
