@@ -146,7 +146,6 @@ def update_recipe():
         return print('### Returning to main menu')
       if  len(new_name) < 1 or len(new_name) > 50:
         print('### Recipe name must be between 1 and 50 characters!')
-      else:
         new_name = ''
 
     print('### Recipe name has been changed to "' + new_name + '".')
