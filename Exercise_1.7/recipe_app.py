@@ -27,24 +27,25 @@ class Recipe(Base):
   def __repr__(self):
     return "<Recipe ID: " + str(self.id) + "-" + self.name + ">"
 
-
 try:
   Base.metadata.create_all(engine)
 except:
   print("Problem with: Base.metadata.create_all(engine)")
 
+
+####################
+### CREATE RECIPE
 def create_recipe():
   print('======================================================================')
   print('CREATE RECIPE')
   print('======================================================================')
   
   # get the recipe NAME
-
   recipe_name = ''
   while not recipe_name:
-    recipe_name = input('>>> Enter the new NAME: ')
+    recipe_name = input('>>> Enter the new RECIPE NAME: ')
 
-    if  len(recipe_name) < 2 or len(recipe_name) > 50:
+    if len(recipe_name) < 2 or len(recipe_name) > 50:
       print('### Try again! Name must be between 2 and 50 characters and alphanumeric.')
       recipe_name = ''
 
@@ -55,7 +56,6 @@ def create_recipe():
       recipe_cooking_time = int(input('>>> Enter the recipe COOK TIME (in minutes): '))
     except:
       print("### WRONG! Cooking time must be a number!")
-
 
   # get the recipe INGREDIENTS
   # recipe_ingredients is declared as an input string, split by commas, into an array
@@ -81,10 +81,28 @@ def create_recipe():
   session.add(recipe)
   session.commit()
 
-  print('### Recipe created!')
-  show_main_menu()
+  return print('### Recipe created!')
 
 
+# recipe_ingredients should come in as a list or tuple
+def calc_difficulty(cooking_time, recipe_ingredients):
+  if (cooking_time < 10) and (len(recipe_ingredients) < 4):
+    difficulty_level = 'Easy'
+  elif (cooking_time < 10) and (len(recipe_ingredients) >= 4):
+    difficulty_level = 'Medium'
+  elif (cooking_time >= 10) and (len(recipe_ingredients) < 4):
+    difficulty_level = 'Intermediate'
+  elif (cooking_time >= 10) and (len(recipe_ingredients) >= 4):
+    difficulty_level = 'Hard'
+  else:
+    print('### INPUT ERROR')
+    difficulty_level = 'Unknown'
+
+  return difficulty_level
+
+
+####################
+# UPDATE RECIPE
 def update_recipe():
   print('======================================================================')
   print('UPDATE RECIPE')
@@ -96,12 +114,10 @@ def update_recipe():
   for id_tuple in session.query(Recipe.id).all():
     valid_ids.append(id_tuple[0])
 
-  print(valid_ids)
-
   while not recipe_id in valid_ids:
     recipe_id = input('>>> Enter the ID of the recipe you\'d like to update (or go "back"): ')
     if recipe_id == 'back':
-      return show_main_menu()
+      return None
 
     try:
       recipe_id = int(recipe_id)
@@ -111,18 +127,24 @@ def update_recipe():
     except:
       print('### WRONG! Recipe ID must be an integer!')
 
-
   print('======================================================================')
   print('SELECTED RECIPE:')
   print_recipe(session.query(Recipe).filter(Recipe.id == recipe_id).one())
+  print('----------------------------------------------------------------------')
 
   # update the recipe name
   name_is_changing = input('>>> Want to update the recipe NAME? (y/n): ').lower()
 
   if name_is_changing == 'y':
     new_name = ''
-    while not new_name.isalnum() or len(new_name) < 1 or len(new_name) > 50:
-      new_name = input('>>> Enter the new NAME: ')
+    while not new_name:
+      new_name = input('>>> Enter the new NAME (or "back"): ')
+      if new_name == 'back':
+        return print('### Returning to main menu')
+      if  len(new_name) < 1 or len(new_name) > 50:
+        print('### Recipe name must be between 1 and 50 characters!')
+      else:
+        new_name = ''
 
     print('### Recipe name has been changed to "' + new_name + '".')
     session.query(Recipe).filter(Recipe.id == recipe_id).update({Recipe.name: new_name})
@@ -131,14 +153,14 @@ def update_recipe():
   ct_is_changing = input('>>> Want to update the recipe COOK TIME? (y/n): ').lower()
 
   if ct_is_changing == 'y':
-    new_ct = None
-    while not new_ct or not new_ct.isnumeric():
+    new_ct = 0
+    while not new_ct:
       try:
         new_ct = int(input('>>> Enter the new recipe COOK TIME (in minutes): '))
         break
 
       except:
-        print("### WRONG! Cooking time must be an integer.")
+        print("### WRONG! Cooking time must be a NUMBER.")
     
     session.query(Recipe).filter(Recipe.id == recipe_id).update({Recipe.cooking_time: new_ct})
 
@@ -146,7 +168,7 @@ def update_recipe():
   ings_are_changing = input('>>> Want to update the recipe INGREDIENTS? (y/n): ').lower()
 
   if ings_are_changing == 'y':
-    new_ings = input('>>> Enter the new INGREDIENTS (separated by ", "): ')
+    new_ings = input('>>> Enter the new INGREDIENTS (separated by ", "): ').lower()
     session.query(Recipe).filter(Recipe.id == recipe_id).update({Recipe.ingredients: new_ings})
 
   # if the cooking_time OR ingredients update, update the difficulty
@@ -159,9 +181,11 @@ def update_recipe():
     session.query(Recipe).filter(Recipe.id == recipe_id).update({Recipe.difficulty: new_difficulty})
 
   session.commit()
-  print('### Recipe Updated!')
+  return print('### Recipe Updated!')
 
 
+####################
+# DELETE RECIPE
 def delete_recipe():
   print('======================================================================')
   print('DELETE RECIPE')
@@ -174,7 +198,7 @@ def delete_recipe():
 
     recipe_id = input('>>> Enter the ID of the recipe you\'d like to delete (or go "back"): ')
     if recipe_id == 'back':
-      return show_main_menu()
+      return None
 
     else:
       try:
@@ -193,51 +217,96 @@ def delete_recipe():
   if will_delete == 'y':
     session.delete(recipe_obj)
     session.commit()
-    print('### Recipe deleted!')
-    return show_main_menu()
+    return print('### Recipe deleted!')
   else:
     print('### Fear not. Nothing was deleted.')
     return None
 
-
-
+####################
+# SEARCHING FOR RECIPES BY MULTIPLE INGREDIENTS IS COMPLICATED
+# here are the basic logical steps:
+#
+# 01. collect all ingredients from all recipes (duplicates included) (unfiltered_ingredients)
+# 02. filter out duplicate values. Now we've got a list of all unique ingredients (all_ingredients)
+# 03. enumerate and list all unique ingredients for the user to input which ingredient(s) to search with (ings_searched)
+# 04. user input (ings searched) comes in as a string, of integers, separated by spaces... yes. e.g. "1 5 13"
+# 05. split the user input by spaces and push the values into a list (ings_searched_str_list) e.g. ['1', '5', '13']
+# 06. NOW THEN. loop through ings_searched_str_list and try to convert each to an integer. pass each integer as an index
+#     of the all_ingredients list, and push that ingredient string into a list (ings_searched_list) e.g. ['water', 'sugar', 'lemon']
+# 07. the final desired outcome is a list of filtered recipes. This variable is declared (filtered_recipes) and starts with the value of all_recipes
+# 08. for each ingredient searched, loop through each recipe. If the recipe does NOT include one of the searched ingredients, that recipe is removed.
+# 09. What you end up with is only recipes that include ALL of the searched ingredients e.g. "Lemonade"
+# 10. Loop through the filtered recipe and print each one
+# Note: case-sensitive
 def search_recipes_by_ingredients():
   print('======================================================================')
   print('SEARCH RECIPES BY INGREDIENTS')
   if session.query(Recipe).count() < 1:
-    print("### There are no recipes to search yet! - going back to main menu")
-    return None
-  
-  unfiltered_ingredients = []
+    return print("### There are no recipes to search yet! - going back to main menu")
 
   results = session.query(Recipe.ingredients).all()
+
+  # 01. collect all ingredients from all recipes (duplicates included) (unfiltered_ingredients)
+  unfiltered_ingredients = []
 
   for recipe_ingredients_list in results:
     for recipe_ingredients in recipe_ingredients_list:
       recipe_ingredient_split = recipe_ingredients.split(", ")
       unfiltered_ingredients.extend(recipe_ingredient_split)
 
+  # 02. filter out duplicate values. Now we've got a list of all unique ingredients (all_ingredients)
   all_ingredients = []
   for ing in unfiltered_ingredients:
     if ing not in all_ingredients:
       all_ingredients.append(ing)
 
+  # 03. enumerate and list all unique ingredients for the user to input which ingredient(s) to search with (ings_searched)
   print('ALL INGREDIENTS:')
   print('----------------------------------------------------------------------')
   for e, ing in enumerate(all_ingredients):
     print(str(e) + '.) ' + ing)
 
+  # 04. user input (ings searched) comes in as a string, of integers, separated by spaces... yes. e.g. "1 5 13"
   ings_searched = ''
   while not ings_searched:
     ings_searched = input('Input one or more ingredient numbers to search (separated by a space): ')
-  
+
+  # 05. split the user input by spaces and push the values into a list (ings_searched_str_list) e.g. ['1', '5', '13']
+  ings_searched_str_list = ings_searched.split(' ')
+
+  # 06. NOW THEN. loop through ings_searched_str_list and try to convert each to an integer. pass each integer as an index
+  #     of the all_ingredients list, and push that ingredient string into a list (ings_searched_list) e.g. ['water', 'sugar', 'lemon']
+  ings_searched_list = []
+
+  for ing in ings_searched_str_list:
+    try:
+      ing = all_ingredients[int(ing)]
+      ings_searched_list.append(ing)
+    except:
+      return print('### Something BROKE. Going back to main menu.')
+
+  # 07. the final desired outcome is a list of filtered recipes. This variable is declared (filtered_recipes) and starts with the value of all recipes (list)
+  filtered_recipes = session.query(Recipe).all()
+
+  # 08. for each ingredient searched, loop through each recipe. If the recipe does NOT include one of the searched ingredients, that recipe is removed.
+  for ing_searched in ings_searched_list:
+    for recipe in filtered_recipes:
+      if ing_searched not in recipe.ingredients:
+        filtered_recipes.remove(recipe)
+
+  # 09. What you end up with is only recipes that include ALL of the searched ingredients e.g. "Lemonade"
+  print('SEARCH RESULTS:')
+  print('RECIPES CONTAINING: ', ings_searched_list)
+# 10. try and loop through the filtered recipes and print each one
   try:
-    print('you searched for: ', all_ingredients[ings_searched])
+    for recipe in filtered_recipes:
+      print_recipe(recipe)
   except:
-    print('Something went wrong!')
-  
+    print('Something went wrong! Returning to the main menu.')
 
 
+####################
+# MAIN MENU
 def show_main_menu():
   def print_menu():
     print('======================================================================')
@@ -253,7 +322,8 @@ def show_main_menu():
   
   user_selection = None
 
-  while user_selection is not '6' or user_selection is not 'quit':
+  # Here's the main loop. If ever a user enters '6' or 'quit' (at this menu) they'll exit the program
+  while user_selection != '6' or user_selection != 'quit':
     print_menu()
     user_selection = input('>>> Enter a number or command: ').lower()
 
@@ -296,38 +366,5 @@ def print_recipe(recipe):
   print("Ingredients:\t", recipe.ingredients)
   print("Cooking Time:\t", recipe.cooking_time)
   print("Difficulty:\t", recipe.difficulty)
-  print('----------------------------------------------------------------------')
-
-
-def get_recipe(id):
-  return session.query(Recipe).get(id)
-
-
-def filter_recipe_by_name(name):
-  return session.query(Recipe).filter(Recipe.name == name).one()
-
-
-def filter_recipes_by_name(name):
-  return session.query(Recipe).filter(Recipe.name == name).all()
-
-
-def filter_recipes_by_ingredient(ing):
-  return session.query(Recipe).filter(Recipe.ingredients.like('%' + ing + '%')).all()
-
-# recipe_ingredients should come in as a list or tuple
-def calc_difficulty(cooking_time, recipe_ingredients):
-  if (cooking_time < 10) and (len(recipe_ingredients) < 4):
-    difficulty_level = 'Easy'
-  elif (cooking_time < 10) and (len(recipe_ingredients) >= 4):
-    difficulty_level = 'Medium'
-  elif (cooking_time >= 10) and (len(recipe_ingredients) < 4):
-    difficulty_level = 'Intermediate'
-  elif (cooking_time >= 10) and (len(recipe_ingredients) >= 4):
-    difficulty_level = 'Hard'
-  else:
-    print('### INPUT ERROR')
-    difficulty_level = 'Unknown'
-
-  return difficulty_level
 
 show_main_menu()
