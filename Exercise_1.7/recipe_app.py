@@ -354,7 +354,7 @@ def print_all_recipes():
   recipes_list = session.query(Recipe).all()
   print('======================================================================')
   print('ALL RECIPES')
-  for e, recipe in enumerate(recipes_list):
+  for recipe in recipes_list:
     print('----------------------------------------------------------------------')
     print("Recipe ID:\t", recipe.id)
     print("Recipe Name:\t", recipe.name)
