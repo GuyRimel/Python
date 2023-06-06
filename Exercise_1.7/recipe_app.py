@@ -65,7 +65,7 @@ def create_recipe():
 
   recipe_ingredients = recipe_ingredients.split(', ')
 
-  # calculate recipe difficulty with a cooking time (int) and recipe_ingredients (array)
+  # calculate recipe difficulty with a cooking time (int) and recipe_ingredients (list)
   recipe_difficulty = calc_difficulty(recipe_cooking_time, recipe_ingredients)
 
   # now that the difficulty is set, recipe_ingredients is joined into recipe_ingredients_string for SQL processing
@@ -111,14 +111,17 @@ def update_recipe():
   recipe_id = None
   valid_ids = []
   
+  # make a list of all currently available ids
   for id_tuple in session.query(Recipe.id).all():
     valid_ids.append(id_tuple[0])
 
+  # if the user enters "back" they'll go back to the menu
   while not recipe_id in valid_ids:
     recipe_id = input('>>> Enter the ID of the recipe you\'d like to update (or go "back"): ')
     if recipe_id == 'back':
       return None
 
+  # if id is not valid, keep looping
     try:
       recipe_id = int(recipe_id)
       if not recipe_id in valid_ids:
@@ -233,7 +236,7 @@ def delete_recipe():
 # 05. split the user input by spaces and push the values into a list (ings_searched_str_list) e.g. ['1', '5', '13']
 # 06. NOW THEN. loop through ings_searched_str_list and try to convert each to an integer. pass each integer as an index
 #     of the all_ingredients list, and push that ingredient string into a list (ings_searched_list) e.g. ['water', 'sugar', 'lemon']
-# 07. the final desired outcome is a list of filtered recipes. This variable is declared (filtered_recipes) and starts with the value of all_recipes
+# 07. the final desired outcome is a list of filtered recipes. This list variable is declared (filtered_recipes) and starts with the value of ALL recipes
 # 08. for each ingredient searched, loop through each recipe. If the recipe does NOT include one of the searched ingredients, that recipe is removed.
 # 09. What you end up with is only recipes that include ALL of the searched ingredients e.g. "Lemonade"
 # 10. Loop through the filtered recipe and print each one
@@ -269,7 +272,10 @@ def search_recipes_by_ingredients():
   # 04. user input (ings searched) comes in as a string, of integers, separated by spaces... yes. e.g. "1 5 13"
   ings_searched = ''
   while not ings_searched:
-    ings_searched = input('Input one or more ingredient numbers to search (separated by a space): ')
+    ings_searched = input('Input one or more ingredient numbers separated by a space to search (or go "back"): ')
+    
+    if ing_searched == "back":
+      return None
 
   # 05. split the user input by spaces and push the values into a list (ings_searched_str_list) e.g. ['1', '5', '13']
   ings_searched_str_list = ings_searched.split(' ')
