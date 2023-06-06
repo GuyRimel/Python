@@ -273,7 +273,7 @@ def search_recipes_by_ingredients():
   while not ings_searched:
     ings_searched = input('Input one or more ingredient numbers separated by a space to search (or go "back"): ')
 
-    if ing_searched == "back":
+    if ings_searched == "back":
       return None
 
   # 05. split the user input by spaces and push the values into a list (ings_searched_str_list) e.g. ['1', '5', '13']
