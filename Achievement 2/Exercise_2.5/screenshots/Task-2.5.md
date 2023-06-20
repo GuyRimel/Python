@@ -15,4 +15,4 @@ Here's a list of changes to the Django "Recipe" model used in Best Recipes Ever:
   Reasoning: Duh, this is a calculated value, not an input value
 
 
-Also a big change was to delete the "Ingredients" app from the project. This would get complicated, so I'm scratching it for the sake of my precious time and sanity.
+Also a big change was to delete the "Ingredients" app from the project. This would get complicated, so I'm scratching it for the sake of my precious time and sanit.
